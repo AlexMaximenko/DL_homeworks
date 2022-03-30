@@ -2,26 +2,28 @@ import numpy as np
 
 # Most part of this code was written as a homework on mipt-ml-base course: https://github.com/girafe-ai/ml-mipt (Neychev et al.)
 
-def apply_regularization(variables, regularization, coef):
+def apply_regularization(variables, grads, regularization, coef):
     """
-        Get additional gradients due to regularization ('l2', 'l1')
+        Add additional gradients due to regularization ('l2', 'l1')
         `variables` - list of lists of variables (one list per layer)
+        `gradients` - list of lists of current gradients (same structure as for `variables`, one array for each var)
+        `regularization` - regularization type: l1 or l2
+        `coef` - regularization coef
     """
+    if regularization is None:
+        return
+
     if regularization.lower() == 'l2':
-        for current_layer_vars in variables: 
-            for current_var in current_layer_vars:
-                np.subtract(current_var, coef * 2 * current_var, current_var)
+        np.add(grads, coef * 2 * variables, grads)
                 
     elif regularization.lower() == 'l1':
-        for current_layer_vars in variables: 
-            for current_var in current_layer_vars:
-                mask = (current_var > 0).astype(current_var.dtype) - (current_var < 0).astype(current_var.dtype)
-                np.subtract(current_var, coef * mask, current_var)
+        mask = (variables > 0).astype(variables.dtype) - (variables < 0).astype(variables.dtype)
+        np.add(grads, coef * mask, grads)
 
 
 
 # SGD optimizer with momentum
-def sgm_momentum(variables, gradients, config, state, regularization=None, coef=1e-2):
+def sgm_momentum(variables, gradients, config, state, regularization=None, coef=1e-4):
     """
         `variables` - list of lists of variables (one list per layer)
         `gradients` - list of lists of current gradients (same structure as for `variables`, one array for each var)
@@ -33,18 +35,16 @@ def sgm_momentum(variables, gradients, config, state, regularization=None, coef=
     var_index = 0 
     for current_layer_vars, current_layer_grads in zip(variables, gradients): 
         for current_var, current_grad in zip(current_layer_vars, current_layer_grads):
+            apply_regularization(current_var, current_grad, regularization, coef)
             
             old_grad = state['accumulated_grads'].setdefault(var_index, np.zeros_like(current_grad))
             
             np.add(config['momentum'] * old_grad, config['learning_rate'] * current_grad, out=old_grad)            
             current_var -= old_grad
-            var_index += 1 
-
-    if regularization is not None:
-        apply_regularization(variables, regularization, coef)    
+            var_index += 1  
 
 # Adam optimizer (https://arxiv.org/pdf/1412.6980.pdf)
-def adam_optimizer(variables, gradients, config, state, regularization=None, coef=1e-2):  
+def adam_optimizer(variables, gradients, config, state, regularization=None, coef=1e-4):  
     """
         `variables` - list of lists of variables (one list per layer)
         `gradients` - list of lists of current gradients (same structure as for `variables`, one array for each var)
@@ -69,6 +69,7 @@ def adam_optimizer(variables, gradients, config, state, regularization=None, coe
     lr_t = config['learning_rate'] * np.sqrt(1 - config['beta2']**state['t']) / (1 - config['beta1']**state['t'])
     for current_layer_vars, current_layer_grads in zip(variables, gradients): 
         for current_var, current_grad in zip(current_layer_vars, current_layer_grads):
+            apply_regularization(current_var, current_grad, regularization, coef)
             var_first_moment = state['m'].setdefault(var_index, np.zeros_like(current_grad))
             var_second_moment = state['v'].setdefault(var_index, np.zeros_like(current_grad))
             np.add(config['beta1'] * var_first_moment, (1-config['beta1']) * current_grad , out = var_first_moment)
@@ -78,6 +79,3 @@ def adam_optimizer(variables, gradients, config, state, regularization=None, coe
             assert var_first_moment is state['m'].get(var_index)
             assert var_second_moment is state['v'].get(var_index)
             var_index += 1
-    
-    if regularization is not None:
-        apply_regularization(variables, regularization, coef)

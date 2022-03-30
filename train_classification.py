@@ -1,6 +1,8 @@
 import numpy as np
 import os
 import json
+import tqdm
+from IPython import display
 
 
 def mean_weights_grads_ratio_norm(model):
@@ -30,14 +32,14 @@ def train(
     test_loss = 0
     test_accuracy = 0
 
-    for epoch in range(epoch_num):
+    for epoch in tqdm(range(epoch_num)):
+        display.clear_output(wait=True)
         # Training
         if epoch_lrs is not None:
             optimizer_state['learning_rate'] = epoch_lrs[epoch]
 
         model.train()
-        for x_batch, y_batch in train_dataloader:
-            
+        for x_batch, y_batch in train_dataloader:            
             model.zeroGradParameters()
 
             # Forward
@@ -62,7 +64,7 @@ def train(
             accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_batch, axis=1))/y_batch.shape[0]
             train_accuracy_history.append(accuracy)
             train_loss_history.append(loss)
-            train_grad_norm_history.append(optimizer_config['learning_rate'] * np.mean(mean_weights_grads_ratio_norm(model)))
+            train_grad_norm_history.append(optimizer_config['learning_rate'] * np.mean(mean_weights_grads_ratio_norm(model)))    
         
         # Evaluation
         if val_dataloader is None:

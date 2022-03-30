@@ -58,3 +58,6 @@ class CifarDataloader(Dataloader):
     
     def reset(self):
         self.curr_index = 0
+
+    def __len__(self):
+        return len(self.dataset) // self.batch_size

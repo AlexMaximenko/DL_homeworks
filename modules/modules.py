@@ -523,4 +523,19 @@ class Tanh(Module):
     def __repr__(self):
         return 'Tanh'
 
+class Swish(Module):
+    def __init__(self):
+        super().__init__()
+    
+    def updateOutput(self, input):
+        self.output = np.multiply(input, 1 / (1 + np.exp(-input)))
+        return self.output
+    
+    def updateGradInput(self, input, gradOutput):
+        self.gradInput = np.multiply(gradOutput, self.output + np.multiply(1 / (1 + np.exp(-input)), (1 - self.output)))
+        return self.gradInput
+
+    def __repr__(self):
+        return 'Swish'
+
     
