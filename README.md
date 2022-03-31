@@ -1,4 +1,4 @@
-# First task
+# First task: Neural Net training pipeline with numpy
 1. Implent fully connnected neural network pipeline using numpy, without using Deep Learning Frameworks
 
     a) Implement neural modules - **Sequential container**, **Linear**, **SoftMax**, **LogSoftMax**
